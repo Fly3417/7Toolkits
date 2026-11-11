@@ -6,17 +6,16 @@ import { useTerminal } from "./composables/useTerminal";
 
 const showSplash = ref(true);
 const activeTool = ref<string | null>(null);
-const activeTab = ref("recon");
 const searchQuery = ref("");
 const showTerminal = ref(false);
 const inputCmd = ref("");
 const term = useTerminal();
 
 const categories = [
-  { id: "recon", label: "Recon", icon: "🔍" },
-  { id: "exploit", label: "Exploit", icon: "⚔️" },
-  { id: "manual", label: "Manual", icon: "✍️" },
-  { id: "utility", label: "Utility", icon: "⚙️" },
+  { id: "recon", label: "Recon", mark: "◉" },
+  { id: "exploit", label: "Exploit", mark: "⚔" },
+  { id: "manual", label: "Manual", mark: "✎" },
+  { id: "utility", label: "Utility", mark: "⚙" },
 ];
 
 const tools = [
@@ -25,7 +24,6 @@ const tools = [
 
 const filteredTools = computed(() => {
   return tools.filter(t => 
-    (t.cat === activeTab || searchQuery.value) && 
     (t.name.toLowerCase().includes(searchQuery.value.toLowerCase()) || 
      t.desc.toLowerCase().includes(searchQuery.value.toLowerCase()))
   );
@@ -35,22 +33,18 @@ function openTool(id: string) {
   term.clear();
   activeTool.value = id; 
 }
-
 function closeTool() { activeTool.value = null; }
 
 function executeCommand() {
   const cmd = inputCmd.value.trim().toLowerCase();
   if (!cmd) return;
-  
   term.info(`root@sevenbyte:~$ ${cmd}`);
   inputCmd.value = "";
   
   if (cmd === "clear") term.clear();
-  else if (cmd === "help") {
-    term.ok("Commands: help, clear, back, sys-info");
-  } else if (cmd === "back") {
-    showTerminal.value = false;
-  } else {
+  else if (cmd === "help") term.ok("Commands: help, clear, back, sys-info");
+  else if (cmd === "back") showTerminal.value = false;
+  else {
     const found = tools.find(t => t.name === cmd);
     if (found) { openTool(found.id); showTerminal.value = false; }
     else term.err(`Command not found: ${cmd}`);
@@ -72,8 +66,7 @@ onMounted(() => {
     <header class="top-header">
       <div class="brand">7Toolkits</div>
       <div class="search-box">
-        <span class="search-icon">🔍</span>
-        <input v-model="searchQuery" type="text" placeholder="Search modules or files..." />
+        <input v-model="searchQuery" type="text" placeholder="Search modules..." />
       </div>
     </header>
 
@@ -82,22 +75,22 @@ onMounted(() => {
         v-for="cat in categories" 
         :key="cat.id"
         class="tab-btn"
-        :class="{ active: activeTab === cat.id }"
-        @click="activeTab = cat.id"
+        :class="{ active: searchQuery ? true : false }"
+        @click="searchQuery = ''"
       >
-        {{ cat.icon }} {{ cat.label }}
+        {{ cat.mark }} {{ cat.label }}
       </button>
     </div>
 
     <main class="main-content">
       <div v-if="activeTool" class="active-view">
-        <button class="back-btn" @click="closeTool">◀ Kembali ke Menu</button>
+        <button class="back-btn" @click="closeTool">◀ back</button>
         <SysInfo v-if="activeTool === 'sysinfo'" />
       </div>
 
       <div v-else class="list-view">
         <div class="list-item" @click="term.warn('File Manager coming soon!')">
-          <div class="item-icon archived">🗂️</div>
+          <div class="item-icon archived">📁</div>
           <div class="item-text">
             <div class="item-title">Arsip</div>
             <div class="item-sub">File Manager & APK Tools</div>
@@ -105,15 +98,11 @@ onMounted(() => {
         </div>
 
         <div v-for="tool in filteredTools" :key="tool.id" class="list-item" @click="openTool(tool.id)">
-          <div class="item-icon module">📦</div>
+          <div class="item-icon module">⚡</div>
           <div class="item-text">
             <div class="item-title">{{ tool.name }}</div>
             <div class="item-sub">{{ tool.desc }}</div>
           </div>
-        </div>
-        
-        <div v-if="filteredTools.length === 0" class="empty-state">
-          Tidak ada modul di kategori ini.
         </div>
       </div>
     </main>
@@ -124,7 +113,7 @@ onMounted(() => {
 
     <div v-if="showTerminal" class="terminal-overlay">
       <div class="terminal-header">
-        <span>7Toolkits Terminal</span>
+        <span>Terminal</span>
         <button @click="showTerminal = false">✕</button>
       </div>
       <div class="terminal-body">
@@ -133,71 +122,46 @@ onMounted(() => {
         </div>
       </div>
       <div class="terminal-input">
-        <span class="prompt">root@7byte:~$</span>
+        <span class="prompt">$</span>
         <input v-model="inputCmd" @keyup.enter="executeCommand" type="text" placeholder="type 'help'..." />
       </div>
     </div>
-
-    <nav class="bottom-nav">
-      <div class="nav-item active">
-        <span class="nav-icon">💬</span>
-        <span class="nav-label">Menu</span>
-      </div>
-      <div class="nav-item" @click="term.warn('Update system coming soon')">
-        <span class="nav-icon">🔄</span>
-        <span class="nav-label">Update</span>
-      </div>
-      <div class="nav-item" @click="term.warn('Community coming soon')">
-        <span class="nav-icon">👥</span>
-        <span class="nav-label">Community</span>
-      </div>
-      <div class="nav-item" @click="showTerminal = true">
-        <span class="nav-icon">📞</span>
-        <span class="nav-label">Terminal</span>
-      </div>
-    </nav>
   </div>
 </template>
 
 <style scoped>
-.app-shell { height: 100%; display: flex; flex-direction: column; background: #0b141a; color: #e9edef; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-.top-header { padding: 12px 16px; background: #202c33; display: flex; align-items: center; gap: 12px; }
-.brand { font-weight: 700; font-size: 20px; color: #00a884; }
-.search-box { flex: 1; background: #2a3942; border-radius: 8px; display: flex; align-items: center; padding: 6px 12px; }
-.search-box input { background: transparent; border: none; outline: none; color: #e9edef; width: 100%; margin-left: 8px; font-size: 14px; }
-.tabs-scroll { display: flex; gap: 8px; padding: 10px 16px; background: #111b21; overflow-x: auto; }
-.tab-btn { background: #202c33; border: none; color: #8696a0; padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
-.tab-btn.active { background: #00a884; color: #111b21; }
+.app-shell { height: 100%; display: flex; flex-direction: column; background: #0d1117; color: #c9d1d9; font-family: monospace; }
+.top-header { padding: 12px 16px; background: #161b22; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #30363d; }
+.brand { font-weight: 700; font-size: 18px; color: #00FF00; }
+.search-box { flex: 1; background: #0d1117; border: 1px solid #30363d; padding: 6px 12px; }
+.search-box input { background: transparent; border: none; outline: none; color: #c9d1d9; width: 100%; font-size: 13px; font-family: monospace; }
+.tabs-scroll { display: flex; gap: 8px; padding: 10px 16px; background: #0d1117; overflow-x: auto; border-bottom: 1px solid #30363d; }
+.tab-btn { background: #161b22; border: 1px solid #30363d; color: #8b949e; padding: 6px 14px; font-size: 12px; cursor: pointer; white-space: nowrap; }
+.tab-btn.active { border-color: #bc8cff; color: #bc8cff; }
 .main-content { flex: 1; overflow-y: auto; }
-.list-view { padding-bottom: 80px; }
-.list-item { display: flex; align-items: center; gap: 16px; padding: 12px 16px; cursor: pointer; border-bottom: 1px solid #202c33; }
-.list-item:hover { background: #202c33; }
-.item-icon { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; }
-.item-icon.archived { background: #3b4a54; }
-.item-icon.module { background: #005c4b; }
+.list-view { padding: 12px; }
+.list-item { display: flex; align-items: center; gap: 12px; padding: 12px; cursor: pointer; border-bottom: 1px solid #30363d; }
+.list-item:hover { background: #161b22; }
+.item-icon { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 4px; }
+.item-icon.archived { background: #30363d; }
+.item-icon.module { background: #21262d; border: 1px solid #00FF00; }
 .item-text { flex: 1; }
-.item-title { font-size: 16px; font-weight: 600; }
-.item-sub { font-size: 13px; color: #8696a0; margin-top: 2px; }
-.empty-state { text-align: center; padding: 40px; color: #8696a0; font-size: 14px; }
-.fab-terminal { position: absolute; bottom: 80px; right: 20px; width: 60px; height: 60px; border-radius: 50%; background: #00a884; border: none; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0, 168, 132, 0.4); cursor: pointer; z-index: 100; }
-.terminal-icon { color: #111b21; font-size: 22px; font-weight: bold; font-family: monospace; }
-.terminal-overlay { position: fixed; inset: 0; background: #000000; z-index: 999; display: flex; flex-direction: column; font-family: monospace; }
-.terminal-header { display: flex; justify-content: space-between; padding: 12px 16px; background: #202c33; color: #00a884; font-weight: bold; }
-.terminal-header button { background: none; border: none; color: #ef4444; font-size: 20px; cursor: pointer; }
+.item-title { font-size: 14px; font-weight: 600; color: #c9d1d9; }
+.item-sub { font-size: 11px; color: #8b949e; margin-top: 2px; }
+.fab-terminal { position: absolute; bottom: 24px; right: 24px; width: 56px; height: 56px; border-radius: 50%; background: #161b22; border: 1px solid #00FF00; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 16px rgba(0, 255, 0, 0.2); cursor: pointer; z-index: 100; }
+.terminal-icon { color: #00FF00; font-size: 20px; font-weight: bold; }
+.terminal-overlay { position: fixed; inset: 0; background: #0d1117; z-index: 999; display: flex; flex-direction: column; }
+.terminal-header { display: flex; justify-content: space-between; padding: 12px 16px; background: #161b22; color: #00FF00; border-bottom: 1px solid #30363d; }
+.terminal-header button { background: none; border: none; color: #ff7b72; font-size: 18px; cursor: pointer; }
 .terminal-body { flex: 1; padding: 16px; overflow-y: auto; }
-.term-line { color: #d1d5db; font-size: 13px; margin-bottom: 4px; white-space: pre-wrap; }
-.term-line .pre { color: #00a884; margin-right: 8px; }
-.lvl-err { color: #ef4444; }
-.lvl-ok { color: #3b82f6; }
-.lvl-warn { color: #eab308; }
-.terminal-input { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: #111b21; border-top: 1px solid #202c33; }
-.prompt { color: #00a884; font-weight: bold; white-space: nowrap; }
-.terminal-input input { flex: 1; background: transparent; border: none; outline: none; color: white; font-family: monospace; font-size: 14px; }
-.bottom-nav { display: flex; justify-content: space-around; align-items: center; background: #202c33; padding: 8px 0 16px; border-top: 1px solid #2a3942; position: fixed; bottom: 0; width: 100%; z-index: 50; }
-.nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #8696a0; cursor: pointer; }
-.nav-item.active { color: #00a884; }
-.nav-icon { font-size: 20px; }
-.nav-label { font-size: 11px; font-weight: 600; }
+.term-line { color: #c9d1d9; font-size: 12px; margin-bottom: 4px; }
+.term-line .pre { color: #00FF00; margin-right: 8px; }
+.lvl-err { color: #ff7b72; }
+.lvl-ok { color: #79c0ff; }
+.lvl-warn { color: #d29922; }
+.terminal-input { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: #161b22; border-top: 1px solid #30363d; }
+.prompt { color: #00FF00; font-weight: bold; }
+.terminal-input input { flex: 1; background: transparent; border: none; outline: none; color: #c9d1d9; font-family: monospace; font-size: 13px; }
 .active-view { padding: 16px; height: 100%; overflow-y: auto; }
-.back-btn { background: transparent; border: 1px solid #00a884; color: #00a884; padding: 8px 16px; border-radius: 8px; margin-bottom: 16px; cursor: pointer; font-weight: bold; }
+.back-btn { background: transparent; border: 1px solid #00FF00; color: #00FF00; padding: 6px 12px; margin-bottom: 16px; cursor: pointer; font-size: 12px; }
 </style>

@@ -62,7 +62,7 @@ jobs:
           NDK_HOME: ${{ env.NDK_HOME }}
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
 
-      - name: Build Android APK (Signed)
+      - name: Build Android APK Signed
         run: npx tauri android build --apk
         env:
           NDK_HOME: ${{ env.NDK_HOME }}
