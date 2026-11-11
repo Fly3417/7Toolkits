@@ -52,6 +52,9 @@ jobs:
       - name: Install Frontend Dependencies
         run: npm install
 
+      - name: Generate Icons
+        run: npx tauri icon src-tauri/icons/icon.png
+
       - name: Init Tauri Android Project
         run: npx tauri android init
         env:
