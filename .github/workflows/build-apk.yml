@@ -28,22 +28,13 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Install Android SDK and NDK
-        run: |
-          rm -rf /usr/local/lib/android
-          mkdir -p $HOME/android-sdk/cmdline-tools
-          wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip
-          unzip -q cmdline-tools.zip -d $HOME/android-sdk/cmdline-tools
-          mv $HOME/android-sdk/cmdline-tools/cmdline-tools $HOME/android-sdk/cmdline-tools/latest
-          echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
-          echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
-          echo "$HOME/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
-          echo "NDK_HOME=$HOME/android-sdk/ndk/26.1.10909125" >> $GITHUB_ENV
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
-      - name: Accept Licenses and Install NDK
+      - name: Install NDK
         run: |
-          yes | sdkmanager --licenses || true
-          sdkmanager --install "platform-tools" "platforms;android-34" "build-tools;34.0.0" "ndk;26.1.10909125"
+          sdkmanager --install "ndk;26.1.10909125"
+          echo "NDK_HOME=$ANDROID_HOME/ndk/26.1.10909125" >> $GITHUB_ENV
 
       - name: Install Frontend Dependencies
         run: npm install
