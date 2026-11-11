@@ -1,0 +1,50 @@
+:root {
+  --bg: #0d1117;
+  --bg-panel: #161b22;
+  --bg-elev: #21262d;
+  
+  --border: #30363d;
+  --border-hot: #8b949e;
+  
+  --fg: #c9d1d9;
+  --fg-dim: #8b949e;
+  --fg-ghost: #484f58;
+  
+  --accent: #00FF00;
+  --alert: #ff7b72;
+  --info: #79c0ff;
+  --valid: #3fb950;
+  --warn: #d29922;
+  --purple: #bc8cff;
+  
+  --mono: "Fira Code", "Courier New", monospace;
+}
+
+* { 
+  box-sizing: border-box; 
+  margin: 0; 
+  padding: 0; 
+}
+
+html, body, #app { 
+  height: 100%; 
+  background: var(--bg); 
+  color: var(--fg); 
+  font-family: var(--mono); 
+}
+
+button { 
+  cursor: pointer; 
+  background: none; 
+  border: none; 
+  font-family: inherit; 
+  color: inherit; 
+}
+
+input { 
+  background: transparent; 
+  border: none; 
+  outline: none; 
+  font-family: inherit; 
+  color: inherit; 
+}
