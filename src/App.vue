@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick, watch, computed } from "vue";
+import { ref, onMounted, computed } from "vue";
 import SysInfo from "./components/modules/SysInfo.vue";
 import SplashScreen from "./components/SplashScreen.vue";
 import { useTerminal } from "./composables/useTerminal";
@@ -35,6 +35,7 @@ function openTool(id: string) {
   term.clear();
   activeTool.value = id; 
 }
+
 function closeTool() { activeTool.value = null; }
 
 function executeCommand() {
@@ -65,10 +66,9 @@ onMounted(() => {
 </script>
 
 <template>
-  <SplashScreen v-if="showSplash" @done="showSplash = false" />
+  <SplashScreen v-if="showSplash" :modules="tools" @done="showSplash = false" />
 
   <div class="app-shell" v-show="!showSplash">
-    <!-- 1. TOP HEADER (Search Bar) -->
     <header class="top-header">
       <div class="brand">7Toolkits</div>
       <div class="search-box">
@@ -77,7 +77,6 @@ onMounted(() => {
       </div>
     </header>
 
-    <!-- 2. TABS KATEGORI -->
     <div class="tabs-scroll" v-if="!activeTool">
       <button 
         v-for="cat in categories" 
@@ -90,7 +89,6 @@ onMounted(() => {
       </button>
     </div>
 
-    <!-- 3. KONTEN -->
     <main class="main-content">
       <div v-if="activeTool" class="active-view">
         <button class="back-btn" @click="closeTool">◀ Kembali ke Menu</button>
@@ -120,12 +118,10 @@ onMounted(() => {
       </div>
     </main>
 
-    <!-- 4. FAB TERMINAL -->
     <button class="fab-terminal" @click="showTerminal = !showTerminal">
       <span class="terminal-icon">&gt;_</span>
     </button>
 
-    <!-- 5. TERMINAL OVERLAY -->
     <div v-if="showTerminal" class="terminal-overlay">
       <div class="terminal-header">
         <span>7Toolkits Terminal</span>
@@ -142,7 +138,6 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- 6. BOTTOM NAVIGATION -->
     <nav class="bottom-nav">
       <div class="nav-item active">
         <span class="nav-icon">💬</span>
