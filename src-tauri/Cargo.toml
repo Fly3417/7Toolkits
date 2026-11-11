@@ -1,5 +1,5 @@
 [package]
-name = "7toolkits"
+name = "toolkits"
 version = "1.0.0"
 description = "7Toolkits Builder"
 authors = ["SevenByte", "Tegal 1337"]
