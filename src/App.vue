@@ -5,254 +5,204 @@ import SplashScreen from "./components/SplashScreen.vue";
 import { useTerminal } from "./composables/useTerminal";
 
 const showSplash = ref(true);
-const active = ref<string | null>(null);
-const expandedCat = ref<string | null>("recon");
+const activeTool = ref<string | null>(null);
+const activeTab = ref("recon");
+const searchQuery = ref("");
+const showTerminal = ref(false);
 const inputCmd = ref("");
-const inputField = ref<HTMLInputElement | null>(null);
-const terminalBody = ref<HTMLDivElement | null>(null);
-
-// Ambil state terminal global
 const term = useTerminal();
-const consoleLogs = term.lines;
 
-interface Tool {
-  id: string; code: string; name: string; tagline: string; desc: string;
-  cat: "recon" | "exploit" | "manual" | "utility";
-}
-
-const tools: Tool[] = [
-  { id: "sysinfo", code: "01", name: "sys-info", tagline: "device recon", desc: "Get local OS, arch, and hostname info.", cat: "recon" },
+const categories = [
+  { id: "recon", label: "Recon", icon: "🔍" },
+  { id: "exploit", label: "Exploit", icon: "⚔️" },
+  { id: "manual", label: "Manual", icon: "✍️" },
+  { id: "utility", label: "Utility", icon: "⚙️" },
 ];
 
-const groups = [
-  { id: "recon", label: "recon", desc: "passive + active reconnaissance", mark: "◉" },
-  { id: "exploit", label: "exploitation", desc: "attack vectors & vulnerability", mark: "⚔" },
-  { id: "manual", label: "manual", desc: "hand-crafted request tooling", mark: "✎" },
-  { id: "utility", label: "utility", desc: "helpers & payload generation", mark: "⚙" },
+const tools = [
+  { id: "sysinfo", name: "sys-info", desc: "Device recon info", cat: "recon" },
 ];
 
-const groupedTools = computed(() =>
-  groups.map(g => ({ ...g, tools: tools.filter(t => t.cat === g.id) }))
-);
+const filteredTools = computed(() => {
+  return tools.filter(t => 
+    (t.cat === activeTab || searchQuery.value) && 
+    (t.name.toLowerCase().includes(searchQuery.value.toLowerCase()) || 
+     t.desc.toLowerCase().includes(searchQuery.value.toLowerCase()))
+  );
+});
 
-function scrollToBottom() {
-  nextTick(() => {
-    if (terminalBody.value) terminalBody.value.scrollTop = terminalBody.value.scrollHeight;
-  });
+function openTool(id: string) { 
+  term.clear();
+  activeTool.value = id; 
 }
+function closeTool() { activeTool.value = null; }
 
-// Scroll ke bawah tiap ada log baru dari modul atau command
-watch(consoleLogs, () => scrollToBottom(), { deep: true });
-
-function focusInput() { if (inputField.value) inputField.value.focus(); }
-
-function executeCommand(cmdText: string) {
-  const cmd = cmdText.trim().toLowerCase();
+function executeCommand() {
+  const cmd = inputCmd.value.trim().toLowerCase();
   if (!cmd) return;
-
+  
   term.info(`root@sevenbyte:~$ ${cmd}`);
   inputCmd.value = "";
-
-  if (cmd === "clear") {
-    term.clear();
-  } else if (cmd === "help") {
-    term.ok("Available modules:");
-    tools.forEach(t => term.dim(`  [${t.code}] ${t.name.padEnd(10)} - ${t.desc}`));
+  
+  if (cmd === "clear") term.clear();
+  else if (cmd === "help") {
+    term.ok("Commands: help, clear, back, sys-info");
   } else if (cmd === "back") {
-    active.value = null;
-    term.dim("Returning to arsenal...");
+    showTerminal.value = false;
   } else {
-    const tool = tools.find(t => t.name === cmd || t.id === cmd);
-    if (tool) {
-      active.value = tool.id;
-      term.info(`> Loading module: ${tool.name}...`);
-    } else {
-      term.err(`Command not found: '${cmd}'. Type 'help'.`);
-    }
+    const found = tools.find(t => t.name === cmd);
+    if (found) { openTool(found.id); showTerminal.value = false; }
+    else term.err(`Command not found: ${cmd}`);
   }
 }
 
-function handleCommand() { executeCommand(inputCmd.value); }
-function openModule(id: string) { 
-  term.clear();
-  active.value = id; 
-}
-function goBack() { active.value = null; focusInput(); }
-function toggleCategory(catId: string) {
-  expandedCat.value = expandedCat.value === catId ? null : catId;
-}
-
 onMounted(() => {
-  term.info("7Toolkits Terminal v1.0.0");
-  term.dim("Type 'help' for commands.");
-  setTimeout(focusInput, 500);
+  setTimeout(() => {
+    term.info("Welcome to 7Toolkits v1.0");
+    term.dim("Click the terminal button to type commands.");
+  }, 1000);
 });
 </script>
 
 <template>
   <SplashScreen v-if="showSplash" @done="showSplash = false" />
 
-  <div class="shell" v-show="!showSplash">
-    <header class="hdr">
-      <div class="hdr-top">
-        <button v-if="active" class="hdr-back" @click="goBack">◀ back</button>
-        <div class="banner-wrap">
-          <pre class="banner-art">
-███████╗████████╗ ██████╗  ██████╗ ██╗     ██╗  ██╗██╗████████╗███████╗       
-╚════██║╚══██╔══╝██╔═══██╗██╔═══██╗██║     ██║ ██╔╝██║╚══██╔══╝██╔════╝       
-    ██╔╝   ██║   ██║   ██║██║   ██║██║     █████╔╝ ██║   ██║   ███████╗       
-   ██╔╝    ██║   ██║   ██║██║   ██║██║     ██╔═██╗ ██║   ██║   ╚════██║       
-   ██║     ██║   ╚██████╔╝╚██████╔╝███████╗██║  ██╗██║   ██║   ███████║       
-   ╚═╝     ╚═╝    ╚═════╝  ╚═════╝ ╚══════╝╚═╝  ╚═╝╚═╝   ╚═╝   ╚══════╝
-          </pre>
-        </div>
-      </div>
-      <div class="hdr-meta">
-        <span class="tag">v1.0.0</span>
-        <span class="hdr-spacer" />
-        <span class="hdr-status"><span class="pulse" />{{ active ? "armed" : "idle" }}</span>
+  <div class="app-shell" v-show="!showSplash">
+    <!-- 1. TOP HEADER (Search Bar) -->
+    <header class="top-header">
+      <div class="brand">7Toolkits</div>
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input v-model="searchQuery" type="text" placeholder="Search modules or files..." />
       </div>
     </header>
 
-    <main class="main">
-      <!-- JIKA MODUL AKTIF -->
-      <div v-if="active" class="tool">
-        <SysInfo v-if="active === 'sysinfo'" />
+    <!-- 2. TABS KATEGORI -->
+    <div class="tabs-scroll" v-if="!activeTool">
+      <button 
+        v-for="cat in categories" 
+        :key="cat.id"
+        class="tab-btn"
+        :class="{ active: activeTab === cat.id }"
+        @click="activeTab = cat.id"
+      >
+        {{ cat.icon }} {{ cat.label }}
+      </button>
+    </div>
+
+    <!-- 3. KONTEN -->
+    <main class="main-content">
+      <div v-if="activeTool" class="active-view">
+        <button class="back-btn" @click="closeTool">◀ Kembali ke Menu</button>
+        <SysInfo v-if="activeTool === 'sysinfo'" />
       </div>
-      
-      <!-- JIKA MENU UTAMA -->
-      <div v-else class="arsenal-view">
-        <div class="menu-scroll">
-          <div v-for="g in groupedTools" :key="g.id" class="accordion-group">
-            <button class="accordion-header" :class="{ active: expandedCat === g.id }" @click="toggleCategory(g.id)">
-              <div class="acc-left">
-                <span class="grp-mark">{{ g.mark }}</span>
-                <span class="grp-label">{{ g.label }}</span>
-                <span class="grp-desc">// {{ g.desc }}</span>
-              </div>
-              <div class="acc-right">
-                <span class="grp-count">[{{ g.tools.length }}]</span>
-                <span class="acc-arrow">{{ expandedCat === g.id ? '▼' : '▶' }}</span>
-              </div>
-            </button>
-            <div v-if="expandedCat === g.id" class="accordion-body">
-              <div v-if="g.tools.length === 0" class="empty-cat">No modules installed in this category.</div>
-              <div v-else class="grid">
-                <button v-for="t in g.tools" :key="t.id" class="tile" @click="openModule(t.id)">
-                  <div class="tile-top"><span class="tile-code">[{{ t.code }}]</span></div>
-                  <div class="tile-name">{{ t.name }}</div>
-                  <div class="tile-tag">{{ t.tagline }}</div>
-                  <div class="tile-desc">{{ t.desc }}</div>
-                  <div class="tile-foot"><span class="sev">info</span><span class="tile-arrow">▶</span></div>
-                </button>
-              </div>
-            </div>
+
+      <div v-else class="list-view">
+        <div class="list-item" @click="term.warn('File Manager coming soon!')">
+          <div class="item-icon archived">🗂️</div>
+          <div class="item-text">
+            <div class="item-title">Arsip</div>
+            <div class="item-sub">File Manager & APK Tools</div>
           </div>
+        </div>
+
+        <div v-for="tool in filteredTools" :key="tool.id" class="list-item" @click="openTool(tool.id)">
+          <div class="item-icon module">📦</div>
+          <div class="item-text">
+            <div class="item-title">{{ tool.name }}</div>
+            <div class="item-sub">{{ tool.desc }}</div>
+          </div>
+        </div>
+        
+        <div v-if="filteredTools.length === 0" class="empty-state">
+          Tidak ada modul di kategori ini.
         </div>
       </div>
     </main>
 
-    <!-- TERMINAL BAWAH (Selalu ada di semua halaman) -->
-    <div class="bottom-terminal">
-      <div class="terminal-log" ref="terminalBody">
-        <div v-for="(l, i) in consoleLogs" :key="i" class="log-line" :class="`lvl-${l.level}`">
-          <span class="ts">{{ l.ts }}</span>
-          <span class="pre">{{ l.level === 'valid' ? '[✓]' : l.level === 'err' ? '[x]' : l.level === 'ok' ? '[*]' : l.level === 'dim' ? '[ ]' : '[i]' }}</span>
-          {{ l.text }}
+    <!-- 4. FAB TERMINAL -->
+    <button class="fab-terminal" @click="showTerminal = !showTerminal">
+      <span class="terminal-icon">&gt;_</span>
+    </button>
+
+    <!-- 5. TERMINAL OVERLAY -->
+    <div v-if="showTerminal" class="terminal-overlay">
+      <div class="terminal-header">
+        <span>7Toolkits Terminal</span>
+        <button @click="showTerminal = false">✕</button>
+      </div>
+      <div class="terminal-body">
+        <div v-for="(l, i) in term.lines.value" :key="i" class="term-line" :class="`lvl-${l.level}`">
+          <span class="pre">></span> {{ l.text }}
         </div>
       </div>
-      
-      <div class="quick-actions">
-        <button v-for="t in tools" :key="t.id" @click="executeCommand(t.name)" class="qa-btn">> {{ t.name }}</button>
-        <button @click="executeCommand('help')" class="qa-btn">[ help ]</button>
-        <button @click="executeCommand('clear')" class="qa-btn">[ clear ]</button>
-      </div>
-
-      <div class="input-area" @click="focusInput">
-        <span class="prompt">root@sevenbyte:~$</span>
-        <input ref="inputField" v-model="inputCmd" @keyup.enter="handleCommand" type="text" class="cmd-input" spellcheck="false" placeholder="type help..." />
-        <button @click="handleCommand" class="send-btn">⏎</button>
+      <div class="terminal-input">
+        <span class="prompt">root@7byte:~$</span>
+        <input v-model="inputCmd" @keyup.enter="executeCommand" type="text" placeholder="type 'help'..." />
       </div>
     </div>
 
-    <footer class="foot">
-      <span class="foot-l">7Toolkits v1.0.0 // offensive toolkit</span>
-      <span class="foot-r">[Credits: Tegal 1337]</span>
-    </footer>
+    <!-- 6. BOTTOM NAVIGATION -->
+    <nav class="bottom-nav">
+      <div class="nav-item active">
+        <span class="nav-icon">💬</span>
+        <span class="nav-label">Menu</span>
+      </div>
+      <div class="nav-item" @click="term.warn('Update system coming soon')">
+        <span class="nav-icon">🔄</span>
+        <span class="nav-label">Update</span>
+      </div>
+      <div class="nav-item" @click="term.warn('Community coming soon')">
+        <span class="nav-icon">👥</span>
+        <span class="nav-label">Community</span>
+      </div>
+      <div class="nav-item" @click="showTerminal = true">
+        <span class="nav-icon">📞</span>
+        <span class="nav-label">Terminal</span>
+      </div>
+    </nav>
   </div>
 </template>
 
 <style scoped>
-/* SAMA SEPERTI SEBELUMNYA, DITAMBAH COLOR LOG */
-.shell { height: 100%; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
-.hdr { flex-shrink: 0; border-bottom: 1px solid var(--border); background: var(--bg-elev); }
-.hdr-top { display: flex; align-items: flex-start; gap: 8px; padding: 8px 12px 4px; }
-.hdr-back { color: var(--alert); border: 1px solid var(--alert); padding: 3px 8px; font-size: 11px; margin-top: 4px; cursor: pointer; background: transparent; }
-.banner-wrap { flex: 1; overflow-x: auto; }
-.banner-art { color: var(--accent); font-size: 9px; line-height: 1.1; font-weight: 700; text-shadow: 0 0 10px rgba(0, 255, 0, 0.25); margin: 0; white-space: pre; }
-.hdr-meta { display: flex; align-items: center; gap: 6px; padding: 0 12px 8px; }
-.tag { font-size: 10px; color: var(--fg-dim); padding: 1px 6px; border: 1px solid var(--border); }
-.hdr-spacer { flex: 1; }
-.hdr-status { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--accent); text-transform: uppercase; }
-.pulse { width: 6px; height: 6px; background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: pulse 1.5s infinite; }
-@keyframes pulse { 50% { opacity: 0.3; } }
-
-.main { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
-.arsenal-view { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-.menu-scroll { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
-
-.accordion-group { display: flex; flex-direction: column; border: 1px solid var(--border); background: var(--bg-panel); }
-.accordion-header { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 10px 12px; background: var(--bg-elev); border: none; cursor: pointer; text-align: left; color: var(--fg); }
-.accordion-header:hover { background: var(--border); }
-.accordion-header.active { border-bottom: 1px solid var(--border); background: var(--bg); }
-.acc-left { display: flex; align-items: center; gap: 8px; }
-.acc-right { display: flex; align-items: center; gap: 8px; }
-.grp-mark { font-size: 16px; color: var(--info); }
-.grp-label { font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; font-size: 13px; color: var(--info); }
-.grp-desc { color: var(--fg-ghost); font-size: 10px; font-style: italic; display: none; }
-@media (min-width: 400px) { .grp-desc { display: block; } }
-.grp-count { color: var(--fg-dim); font-size: 10px; }
-.acc-arrow { color: var(--accent); font-size: 10px; }
-.accordion-body { padding: 10px 12px; background: var(--bg-panel); }
-.empty-cat { color: var(--fg-ghost); font-size: 11px; font-style: italic; text-align: center; padding: 10px; }
-
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
-.tile { display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 10px; background: var(--bg); border: 1px solid var(--border); min-height: 120px; position: relative; cursor: pointer; }
-.tile:hover { border-color: var(--accent); }
-.tile-top { display: flex; justify-content: space-between; }
-.tile-code { color: var(--fg-ghost); font-size: 10px; }
-.tile-name { font-size: 14px; font-weight: 700; color: var(--fg); }
-.tile-tag { font-size: 9px; color: var(--fg-dim); text-transform: uppercase; }
-.tile-desc { font-size: 10px; color: var(--fg-dim); flex: 1; }
-.tile-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
-.sev { font-size: 9px; padding: 1px 4px; border: 1px solid var(--fg-ghost); color: var(--fg-ghost); }
-.tile-arrow { color: var(--fg-ghost); font-size: 10px; }
-
-/* TERMINAL */
-.bottom-terminal { flex-shrink: 0; background: #09090b; border-top: 1px solid var(--border); padding: 8px 12px; display: flex; flex-direction: column; max-height: 35vh; }
-.terminal-log { flex: 1; overflow-y: auto; min-height: 40px; max-height: 100px; display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
-.log-line { font-size: 11px; white-space: pre-wrap; line-height: 1.3; display: flex; gap: 6px; }
-.log-line .ts { color: var(--fg-ghost); flex-shrink: 0; }
-.log-line .pre { flex-shrink: 0; }
-.lvl-info { color: var(--fg-dim); }
-.lvl-info .pre { color: var(--fg-dim); }
-.lvl-ok { color: var(--info); }
-.lvl-ok .pre { color: var(--info); }
-.lvl-valid { color: var(--valid); }
-.lvl-valid .pre { color: var(--valid); }
-.lvl-err { color: var(--alert); }
-.lvl-err .pre { color: var(--alert); }
-.lvl-dim { color: var(--fg-ghost); }
-.lvl-dim .pre { color: var(--fg-ghost); }
-
-.quick-actions { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 8px; border-bottom: 1px dashed var(--border); margin-bottom: 8px; }
-.qa-btn { background: var(--bg-panel); border: 1px solid var(--border); color: var(--accent); font-size: 10px; padding: 3px 8px; cursor: pointer; }
-.qa-btn:hover { border-color: var(--accent); }
-.input-area { display: flex; align-items: center; gap: 8px; }
-.prompt { color: var(--accent); font-size: 12px; font-weight: bold; white-space: nowrap; }
-.cmd-input { flex: 1; background: transparent; border: none; outline: none; color: var(--fg); font-size: 13px; font-family: inherit; }
-.send-btn { background: var(--bg-panel); border: 1px solid var(--border); color: var(--accent); padding: 4px 10px; font-size: 14px; cursor: pointer; }
-
-.tool { flex: 1; padding: 10px 12px; display: flex; overflow: hidden; }
-.foot { flex-shrink: 0; padding: 5px 12px; border-top: 1px solid var(--border); background: var(--bg-elev); font-size: 10px; color: var(--fg-dim); display: flex; justify-content: space-between; }
+.app-shell { height: 100%; display: flex; flex-direction: column; background: #0b141a; color: #e9edef; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+.top-header { padding: 12px 16px; background: #202c33; display: flex; align-items: center; gap: 12px; }
+.brand { font-weight: 700; font-size: 20px; color: #00a884; }
+.search-box { flex: 1; background: #2a3942; border-radius: 8px; display: flex; align-items: center; padding: 6px 12px; }
+.search-box input { background: transparent; border: none; outline: none; color: #e9edef; width: 100%; margin-left: 8px; font-size: 14px; }
+.tabs-scroll { display: flex; gap: 8px; padding: 10px 16px; background: #111b21; overflow-x: auto; }
+.tab-btn { background: #202c33; border: none; color: #8696a0; padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.tab-btn.active { background: #00a884; color: #111b21; }
+.main-content { flex: 1; overflow-y: auto; }
+.list-view { padding-bottom: 80px; }
+.list-item { display: flex; align-items: center; gap: 16px; padding: 12px 16px; cursor: pointer; border-bottom: 1px solid #202c33; }
+.list-item:hover { background: #202c33; }
+.item-icon { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+.item-icon.archived { background: #3b4a54; }
+.item-icon.module { background: #005c4b; }
+.item-text { flex: 1; }
+.item-title { font-size: 16px; font-weight: 600; }
+.item-sub { font-size: 13px; color: #8696a0; margin-top: 2px; }
+.empty-state { text-align: center; padding: 40px; color: #8696a0; font-size: 14px; }
+.fab-terminal { position: absolute; bottom: 80px; right: 20px; width: 60px; height: 60px; border-radius: 50%; background: #00a884; border: none; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0, 168, 132, 0.4); cursor: pointer; z-index: 100; }
+.terminal-icon { color: #111b21; font-size: 22px; font-weight: bold; font-family: monospace; }
+.terminal-overlay { position: fixed; inset: 0; background: #000000; z-index: 999; display: flex; flex-direction: column; font-family: monospace; }
+.terminal-header { display: flex; justify-content: space-between; padding: 12px 16px; background: #202c33; color: #00a884; font-weight: bold; }
+.terminal-header button { background: none; border: none; color: #ef4444; font-size: 20px; cursor: pointer; }
+.terminal-body { flex: 1; padding: 16px; overflow-y: auto; }
+.term-line { color: #d1d5db; font-size: 13px; margin-bottom: 4px; white-space: pre-wrap; }
+.term-line .pre { color: #00a884; margin-right: 8px; }
+.lvl-err { color: #ef4444; }
+.lvl-ok { color: #3b82f6; }
+.lvl-warn { color: #eab308; }
+.terminal-input { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: #111b21; border-top: 1px solid #202c33; }
+.prompt { color: #00a884; font-weight: bold; white-space: nowrap; }
+.terminal-input input { flex: 1; background: transparent; border: none; outline: none; color: white; font-family: monospace; font-size: 14px; }
+.bottom-nav { display: flex; justify-content: space-around; align-items: center; background: #202c33; padding: 8px 0 16px; border-top: 1px solid #2a3942; position: fixed; bottom: 0; width: 100%; z-index: 50; }
+.nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #8696a0; cursor: pointer; }
+.nav-item.active { color: #00a884; }
+.nav-icon { font-size: 20px; }
+.nav-label { font-size: 11px; font-weight: 600; }
+.active-view { padding: 16px; height: 100%; overflow-y: auto; }
+.back-btn { background: transparent; border: 1px solid #00a884; color: #00a884; padding: 8px 16px; border-radius: 8px; margin-bottom: 16px; cursor: pointer; font-weight: bold; }
 </style>

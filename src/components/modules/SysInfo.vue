@@ -33,10 +33,8 @@ async function run() {
         {{ running ? "[ fetching... ]" : "> execute sys-info" }}
       </button>
     </div>
-    
-    <!-- Tombol back ada di App.vue, form di atas, sisanya kosong -->
     <div class="info-text">
-      Output logs will appear in the terminal below.
+      Output logs will appear in the terminal (click the green button).
     </div>
   </div>
 </template>
